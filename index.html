@@ -102,7 +102,27 @@ body { font-family: "Songti SC", "Noto Serif SC", "SimSun", serif; color: #C9C4B
 #title-ui .t { writing-mode: vertical-rl; font-size: 64px; letter-spacing: .35em; color: #E8DCC0;
   text-shadow: 0 0 30px rgba(255,178,107,.25); font-weight: 600; }
 #title-ui .s { writing-mode: vertical-rl; font-size: 15px; letter-spacing: .5em; color: #8A9C8F; margin-top: 18px; }
+/* 竖排字不能被 flex 压扁——一旦被压缩，浏览器会把竖排文字折成第二列，标题直接错位 */
+#title-ui .t, #title-ui .s { flex: none; }
 #title-ui .btns { display: flex; gap: 18px; margin-top: 56px; }
+/* 开场模式三选：每项独占一列（按钮在上、说明在下），不许 inline 流成一串 */
+/* 字号写在这里而不是内联，否则 @media 覆盖不掉（内联优先级高于类选择器） */
+#title-ui.mode-ui .t { font-size: 44px; }
+#title-ui.mode-ui .s { margin-top: 22px; }
+#title-ui .modepick { margin-top: 30px; width: 74%; max-width: 320px; }
+#title-ui .modepick .mrow { display: flex; flex-direction: column; align-items: center; }
+#title-ui .modepick .mrow + .mrow { margin-top: 18px; }
+#title-ui .modepick button { display: block; width: 100%; box-sizing: border-box; }
+#title-ui .modepick small { display: block; margin-top: 8px; font-size: 12px; line-height: 1.7;
+  letter-spacing: .05em; color: #5d6f64; text-align: center; }
+/* 矮屏（iPhone SE 级别的 667/780）收紧纵向尺寸，保证三行说明不压到最下面的灯 */
+@media (max-height: 800px) {
+  #title-ui.mode-ui .t { font-size: 34px; }
+  #title-ui.mode-ui .s { font-size: 13px; margin-top: 12px; }
+  #title-ui.mode-ui .modepick { margin-top: 18px; }
+  #title-ui.mode-ui .modepick .mrow + .mrow { margin-top: 12px; }
+  #title-ui.mode-ui .modepick small { margin-top: 6px; line-height: 1.6; }
+}
 #title-ui button { background: none; border: 1px solid #3a443f; color: #C9C4B4; border-radius: 4px;
   font-family: inherit; font-size: 16px; letter-spacing: .35em; padding: 10px 26px 10px 30px; cursor: pointer; }
 #title-ui button:hover { border-color: #B44A3C; color: #E8DCC0; }
@@ -597,7 +617,9 @@ G.audio = {
   }
 };
 function heartbeat(bpm) {
-  var a = AC; if (!a || G.mode === "mute") return;
+  // timid 也要跳过：开场文案承诺「去掉心跳与镜头抖动」，胆小模式是给怕的人用的，
+  // 心跳恰恰是最催人的那层。10-26 修：原先只判 mute，文案与代码不符。
+  var a = AC; if (!a || G.mode === "mute" || G.mode === "timid") return;
   beatT -= 1;
   if (beatT > 0) return;
   beatT = 60 / bpm * 30; // 以 30fps 帧计
@@ -807,6 +829,10 @@ G.goto = function (id, opts) {
     G.scene = G.scenes[id];
     G.flags.scene = id;
     if (!opts.noSave) G.save();
+    // 统一清空 DOM UI 层：原先靠"谁导航谁负责清"，漏一次就会有一层
+    // #title-ui 盖在场景上、吞掉上方热区（contGame 那次就是）。改成 goto 统一清，
+    // 需要按钮的场景在自己 enter 里重新画。
+    G.ui("");
     if (G.scene.enter) G.scene.enter(opts);
     fadeEl.classList.remove("on");
     G.busy = false;
@@ -1049,22 +1075,26 @@ G.ui = function (html) { document.getElementById("ui").innerHTML = html || ""; }
 function btn(label, fn, extra) {
   return "<button class='uibtn' " + (extra || "") + " onclick=\"" + fn + "\">" + label + "</button>";
 }
+// 模式一项 = 按钮 + 下方一行说明（说明必须 block 独占一行，否则会跟按钮挤成一段文字流）
+function modeRow(label, fn, desc) {
+  return "<div class='mrow'>" + btn(label, fn) + "<small>" + desc + "</small></div>";
+}
 
 /* ================= 模式选择 ================= */
 G.scenes.modemenu = {
   id: "modemenu", noBurn: true, windOk: false, bg: null,
   enter: function () {
     G.scene = G.scenes.modemenu;
+    // 这一屏底下没有落款，灯可以坐得更低，免得辉光糊在「静音」那行说明上
+    G.lanternPos = { x: W * 0.5, y: H * 0.945 };
     G.ui(
-      "<div id='title-ui'>" +
-      "<div class='t' style='font-size:44px'>寒衣</div>" +
-      "<div class='s' style='margin-top:26px'>先选一盏灯的性子</div>" +
-      "<div style='margin-top:40px;width:72%'>" +
-      btn("常规", "G.pickMode('normal')") +
-      btn("胆小", "G.pickMode('timid')") +
-      "<small style='color:#5d6f64;font-size:12px;letter-spacing:.05em'>关心跳与镜头抖动，暗角更深，纸人退行更慢</small>" +
-      btn("静音", "G.pickMode('mute')") +
-      "<small style='color:#5d6f64;font-size:12px;letter-spacing:.05em'>音效文字化【风声】【远处更鼓】</small>" +
+      "<div id='title-ui' class='mode-ui'>" +
+      "<div class='t'>寒衣</div>" +
+      "<div class='s'>先选一盏灯的性子</div>" +
+      "<div class='modepick'>" +
+      modeRow("常规", "G.pickMode('normal')", "光照、心跳、镜头抖动，都在") +
+      modeRow("胆小", "G.pickMode('timid')", "去掉心跳与镜头抖动，暗角更深，纸人退行更慢") +
+      modeRow("静音", "G.pickMode('mute')", "音效文字化【风声】【远处更鼓】") +
       "</div></div>"
     );
   },
@@ -2121,9 +2151,9 @@ G.pause = function () {
   if (G.scene && (G.scene.noBurn)) { /* 题名/终章也可换模式 */ }
   G.modal(
     "<h3 style='text-align:center'>灯</h3>" +
-    "<button class='modebtn' onclick='G.setMode2(\"normal\")'>常规</button>" +
-    "<button class='modebtn' onclick='G.setMode2(\"timid\")'>胆小<small>关心跳与镜头抖动，暗角更深，纸人退行更慢</small></button>" +
-    "<button class='modebtn' onclick='G.setMode2(\"mute\")'>静音<small>音效文字化</small></button>" +
+    "<button class='modebtn' onclick='G.setMode2(\"normal\")'>常规<small>光照、心跳、镜头抖动，都在</small></button>" +
+    "<button class='modebtn' onclick='G.setMode2(\"timid\")'>胆小<small>去掉心跳与镜头抖动<br>暗角更深，纸人退行更慢</small></button>" +
+    "<button class='modebtn' onclick='G.setMode2(\"mute\")'>静音<small>音效文字化【风声】【远处更鼓】</small></button>" +
     "<button class='modebtn' onclick='G.closeModal()'>继续</button>" +
     "<button class='modebtn' onclick='G.toTitle()'>回到题名</button>"
   );
