@@ -28,15 +28,21 @@ body { font-family: "Songti SC", "Noto Serif SC", "SimSun", serif; color: #C9C4B
   50% { opacity: 1; box-shadow: 0 0 18px 3px rgba(180,74,60,.45); border: 1px solid rgba(180,74,60,.7); }
 }
 
-/* 旁白 */
-#narr { position: absolute; left: 0; right: 0; bottom: 0; padding: 28px 26px 22px;
-  background: linear-gradient(to top, rgba(5,8,9,.92), rgba(5,8,9,0));
-  min-height: 17%; font-size: 17px; line-height: 2.0; letter-spacing: .08em;
+/* 旁白：整条抬到灯笼之上（12.5% 高 = 灯笼顶沿 1172 上方留 27px 呼吸）。
+   原来贴底 bottom:0，文字盒 1148~1199 与灯笼 1172~1238 垂直重叠 27px，
+   字压在灯头上、渐变又把灯压暗——底部这块地归灯，字往上让。 */
+#narr { position: absolute; left: 0; right: 0; bottom: 12.5%; padding: 28px 26px 22px;
+  /* 上下两端都要渐隐，否则层底会在画面上切出一条硬边。
+     用固定 px 而不是 %：字号是固定 px、不随画布缩放，底色也得跟着字走 */
+  background: linear-gradient(to top, rgba(5,8,9,0) 0, rgba(5,8,9,.9) 24px,
+    rgba(5,8,9,.9) 74px, rgba(5,8,9,0) 108px);
+  font-size: 17px; line-height: 2.0; letter-spacing: .08em;
   color: #8A9C8F; text-shadow: 0 1px 6px #000; user-select: none; cursor: pointer; }
 #narr.her { color: #E8DCC0; font-size: 18px; }
 #narr.paper { color: #6f8276; font-style: italic; }
-/* 无旁白时让出点击：底部这条 17% 高的层会吞掉靠下的热区（石碑字块等） */
-#narr:empty { pointer-events: none; }
+/* 无旁白时让出点击、并且不给底色：
+   旁白层抬到 12.5% 后，空层若还带着渐变，会在题名页中间切出一条黑带 */
+#narr:empty { pointer-events: none; background: none; }
 #narr .cursor { display: inline-block; width: .6em; animation: blink 1s steps(1) infinite; color: #8A9C8F; }
 @keyframes blink { 50% { opacity: 0; } }
 #notebtn { display: inline-block; margin-left: 10px; color: #B44A3C; border: 1px solid rgba(180,74,60,.6);
@@ -44,7 +50,7 @@ body { font-family: "Songti SC", "Noto Serif SC", "SimSun", serif; color: #C9C4B
   vertical-align: 2px; cursor: pointer; }
 
 /* 手持物 */
-#inv { position: absolute; left: 12px; bottom: 19%; display: flex; gap: 8px; flex-wrap: wrap; max-width: 70%; }
+#inv { position: absolute; left: 12px; bottom: 22.5%; display: flex; gap: 8px; flex-wrap: wrap; max-width: 70%; }
 .chip { background: rgba(11,15,16,.85); border: 1px solid #3a443f; color: #C9C4B4; border-radius: 4px;
   padding: 5px 10px; font-size: 14px; letter-spacing: .1em; cursor: pointer; }
 .chip.sel { border-color: #B44A3C; color: #E8DCC0; box-shadow: 0 0 10px rgba(180,74,60,.4); }
