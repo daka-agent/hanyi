@@ -88,9 +88,6 @@ body { font-family: "Songti SC", "Noto Serif SC", "SimSun", serif; color: #C9C4B
 .modebtn { display: block; width: 100%; margin: 10px 0 0 !important; text-align: center; }
 .modebtn small { display: block; color: #5d6f64; letter-spacing: .05em; font-size: 12px; margin-top: 3px; }
 
-/* 开场三选 */
-#modemenu h3 { text-align: center; }
-
 /* 转场黑幕 */
 #fade { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none;
   transition: opacity 1.2s ease; z-index: 30; }
@@ -105,24 +102,13 @@ body { font-family: "Songti SC", "Noto Serif SC", "SimSun", serif; color: #C9C4B
 /* 竖排字不能被 flex 压扁——一旦被压缩，浏览器会把竖排文字折成第二列，标题直接错位 */
 #title-ui .t, #title-ui .s { flex: none; }
 #title-ui .btns { display: flex; gap: 18px; margin-top: 56px; }
-/* 开场模式三选：每项独占一列（按钮在上、说明在下），不许 inline 流成一串 */
+/* 题名页的「设 置」：模式属于设置项，入口要低调但可发现（无障碍需要它前置在题名页）
+   放右上角，与左上角 ☰ 对称——竖着排会压到灯笼（下方那盏灯的辉光会把字糊掉） */
 /* 字号写在这里而不是内联，否则 @media 覆盖不掉（内联优先级高于类选择器） */
-#title-ui.mode-ui .t { font-size: 44px; }
-#title-ui.mode-ui .s { margin-top: 22px; }
-#title-ui .modepick { margin-top: 30px; width: 74%; max-width: 320px; }
-#title-ui .modepick .mrow { display: flex; flex-direction: column; align-items: center; }
-#title-ui .modepick .mrow + .mrow { margin-top: 18px; }
-#title-ui .modepick button { display: block; width: 100%; box-sizing: border-box; }
-#title-ui .modepick small { display: block; margin-top: 8px; font-size: 12px; line-height: 1.7;
-  letter-spacing: .05em; color: #5d6f64; text-align: center; }
-/* 矮屏（iPhone SE 级别的 667/780）收紧纵向尺寸，保证三行说明不压到最下面的灯 */
-@media (max-height: 800px) {
-  #title-ui.mode-ui .t { font-size: 34px; }
-  #title-ui.mode-ui .s { font-size: 13px; margin-top: 12px; }
-  #title-ui.mode-ui .modepick { margin-top: 18px; }
-  #title-ui.mode-ui .modepick .mrow + .mrow { margin-top: 12px; }
-  #title-ui.mode-ui .modepick small { margin-top: 6px; line-height: 1.6; }
-}
+#title-ui button.setlink { position: absolute; top: 10px; right: 12px; margin: 0;
+  padding: 5px 9px 5px 13px; border: 1px solid #2a332f; border-radius: 4px;
+  background: rgba(11,15,16,.6); font-size: 12px; letter-spacing: .2em; color: #8A9C8F; }
+#title-ui button.setlink:hover { border-color: #B44A3C; color: #E8DCC0; }
 #title-ui button { background: none; border: 1px solid #3a443f; color: #C9C4B4; border-radius: 4px;
   font-family: inherit; font-size: 16px; letter-spacing: .35em; padding: 10px 26px 10px 30px; cursor: pointer; }
 #title-ui button:hover { border-color: #B44A3C; color: #E8DCC0; }
@@ -130,6 +116,13 @@ body { font-family: "Songti SC", "Noto Serif SC", "SimSun", serif; color: #C9C4B
   text-align: center; color: #3d4a44; }
 #title-ui .ft .decl { display: block; font-size: 11px; letter-spacing: .26em; color: #35403b; }
 #title-ui .ft .sign { display: block; margin-top: 7px; font-size: 12px; letter-spacing: .3em; color: #4f5c54; }
+/* 矮屏收紧：标题/副题是固定 px，视口越矮它们占比越大，会把「开 始」推到灯笼上
+   （实测 375×667 按钮底 583 = 灯 583，360×780 压 11px）。缩字号 + 收间距，内容整体上移 */
+@media (max-height: 860px) {
+  #title-ui .t { font-size: 52px; }
+  #title-ui .s { font-size: 13px; margin-top: 10px; }
+  #title-ui .btns { margin-top: 26px; }
+}
 
 /* 大字（终章"天冷了，记得添衣。"） */
 .bigline { font-size: 21px !important; color: #E8DCC0 !important; text-align: center;
@@ -882,8 +875,8 @@ G.boot = function () {
     if (savedMode) G.mode = savedMode;
     buildHotspots();
     if (window.initScenes) window.initScenes();
-    if (!savedMode) G.scenes.modemenu.enter();
-    else G.goto("title", { noSave: true });
+    // 第一页永远是题名。模式选择属于设置，入口在题名页「设 置」与游戏内 ☰。
+    G.goto("title", { noSave: true });
     requestAnimationFrame(loop);
   });
 };
@@ -1075,31 +1068,23 @@ G.ui = function (html) { document.getElementById("ui").innerHTML = html || ""; }
 function btn(label, fn, extra) {
   return "<button class='uibtn' " + (extra || "") + " onclick=\"" + fn + "\">" + label + "</button>";
 }
-// 模式一项 = 按钮 + 下方一行说明（说明必须 block 独占一行，否则会跟按钮挤成一段文字流）
-function modeRow(label, fn, desc) {
-  return "<div class='mrow'>" + btn(label, fn) + "<small>" + desc + "</small></div>";
-}
 
-/* ================= 模式选择 ================= */
-G.scenes.modemenu = {
-  id: "modemenu", noBurn: true, windOk: false, bg: null,
-  enter: function () {
-    G.scene = G.scenes.modemenu;
-    // 这一屏底下没有落款，灯可以坐得更低，免得辉光糊在「静音」那行说明上
-    G.lanternPos = { x: W * 0.5, y: H * 0.945 };
-    G.ui(
-      "<div id='title-ui' class='mode-ui'>" +
-      "<div class='t'>寒衣</div>" +
-      "<div class='s'>先选一盏灯的性子</div>" +
-      "<div class='modepick'>" +
-      modeRow("常规", "G.pickMode('normal')", "光照、心跳、镜头抖动，都在") +
-      modeRow("胆小", "G.pickMode('timid')", "去掉心跳与镜头抖动，暗角更深，纸人退行更慢") +
-      modeRow("静音", "G.pickMode('mute')", "音效文字化【风声】【远处更鼓】") +
-      "</div></div>"
-    );
-  },
-  hotspots: function () { return []; }
+/* ================= 设置（模式三选） =================
+   注意：这一屏**不是**游戏的第一页。游戏的第一页永远是题名。
+   模式属于设置项，入口在题名页的「设 置」与游戏内 ☰ 两处。 */
+function modeRows() {
+  return "<button class='modebtn' onclick='G.setMode2(\"normal\")'>常规<small>光照、心跳、镜头抖动，都在</small></button>" +
+    "<button class='modebtn' onclick='G.setMode2(\"timid\")'>胆小<small>去掉心跳与镜头抖动<br>暗角更深，纸人退行更慢</small></button>" +
+    "<button class='modebtn' onclick='G.setMode2(\"mute\")'>静音<small>音效文字化【风声】【远处更鼓】</small></button>";
+}
+G.settings = function () {
+  G.modal(
+    "<h3 style='text-align:center'>灯</h3>" +
+    modeRows() +
+    "<button class='modebtn' onclick='G.closeModal()'>好了</button>"
+  );
 };
+/* 外部 API：设模式并进题名（验收脚本用，界面不调用） */
 G.pickMode = function (m) {
   G.mode = m; G.saveMode(); G.audio.setMode();
   G.audio.ensure();
@@ -1120,6 +1105,7 @@ G.scenes.title = {
       "<button onclick='G.newGame()'>开 始</button>" +
       (has ? "<button onclick='G.contGame()'>继 续</button>" : "") +
       "</div>" +
+      "<button class='setlink' onclick='G.settings()'>设 置</button>" +
       "<div class='ft'><span class='decl'>岁时礼俗 · 非信仰主张</span><span class='sign'>A game by Daka</span></div>" +
       "</div>"
     );
@@ -2148,12 +2134,9 @@ function finButtons() {
 
 /* ================= 暂停菜单 ================= */
 G.pause = function () {
-  if (G.scene && (G.scene.noBurn)) { /* 题名/终章也可换模式 */ }
   G.modal(
     "<h3 style='text-align:center'>灯</h3>" +
-    "<button class='modebtn' onclick='G.setMode2(\"normal\")'>常规<small>光照、心跳、镜头抖动，都在</small></button>" +
-    "<button class='modebtn' onclick='G.setMode2(\"timid\")'>胆小<small>去掉心跳与镜头抖动<br>暗角更深，纸人退行更慢</small></button>" +
-    "<button class='modebtn' onclick='G.setMode2(\"mute\")'>静音<small>音效文字化【风声】【远处更鼓】</small></button>" +
+    modeRows() +
     "<button class='modebtn' onclick='G.closeModal()'>继续</button>" +
     "<button class='modebtn' onclick='G.toTitle()'>回到题名</button>"
   );
