@@ -1059,8 +1059,14 @@ function shareCard() {
   x.beginPath(); x.moveTo(280, 700); x.lineTo(470, 700); x.stroke();
   F(x, 375, 770, 48, "#E8DCC0");
   x.fillText("天冷了，记得添衣。", 375, 770);
-  F(x, 375, 1052, 20, "#8A9C8F");
+  x.save();
+  x.shadowColor = "rgba(0,0,0,0.55)";
+  x.shadowBlur = 7;
+  F(x, 375, 1052, 20, "rgba(206,214,199,0.95)");
   x.fillText("A game by Daka", 375, 1052);
+  F(x, 375, 1088, 19, "rgba(150,162,148,0.92)");
+  x.fillText("dakazhang.com", 375, 1088);
+  x.restore();
   var url = c.toDataURL("image/png");
   G.modal("<h3>分享卡</h3><div style='text-align:center'>长按或右键保存图片，发给那个你惦记的人。</div>" +
     "<img src='" + url + "'>" +
